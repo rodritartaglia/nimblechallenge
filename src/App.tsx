@@ -1,34 +1,56 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react"
+import { CandidateService } from "./services/candidateService"
+import type { Candidate } from "./types/candidate";
+import type { Job } from "./types/job";
+import { JobService } from "./services/jobService";
+import JobsTable from "./components/JobsTable";
 
 function App() {
-  const [count, setCount] = useState(0)
+
+  const candidateService = new CandidateService();
+  const jobService = new JobService();
+  const email = "rodrigo_tartaglia@hotmail.com"
+  const [candidate, setCandidate] = useState<Candidate>();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [candidateResponse, jobsResponse] = await Promise.all([
+          candidateService.getCandidate(email),
+          jobService.getJobs()
+        ]);
+
+        setCandidate(candidateResponse);
+        setJobs(jobsResponse);
+      }
+      catch (err: any) {
+        setError(err.message || "Error al cargar datos");
+      }
+      finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [])
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div className="min-h-screen bg-gray-100 flex flex-col p-6">
+      {isLoading && (
+        <span className="text-gray-500 text-center text-lg">Cargando datos...</span>
+      )}
+
+      {error && (
+        <span className="text-red-500 font-semibold text-center text-lg flex-1 flex items-center justify-center">{error}</span>
+      )}
+      
+      {!isLoading && !error && (
+        <JobsTable jobs={jobs} candidate={candidate} />
+      )}
+    </div>
   )
 }
 
